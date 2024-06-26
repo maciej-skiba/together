@@ -1,8 +1,15 @@
 public class Mouse : Character
 {
-    private void Awake()
+    public void UnknownAction()
     {
-        this.jumpHeight = 4f;
-        this.movementSpeed = 0.15f;
+        print("Played mouse's unknown action");
+    }
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        this.jumpHeight = 1.7f;
+        this.movementSpeed = 1.7f;
     }
 }
