@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -55,11 +56,11 @@ public static class HelperFunctions
 
     public static void DestroyAllGameObjectsOfType<T>() where T : Component
     {
-        T[] gameObjects = Object.FindObjectsOfType<T>();
+        T[] gameObjects = UnityEngine.Object.FindObjectsOfType<T>();
 
         foreach (T obj in gameObjects)
         {
-            Object.Destroy(obj.gameObject);
+            UnityEngine.Object.Destroy(obj.gameObject);
         }
     }
 
@@ -93,5 +94,40 @@ public static class HelperFunctions
         }
 
         audioSource.volume = 1f;
+    }
+
+    public static IEnumerator CoEnableCollider2DAfterSeconds(Collider2D collider, float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+
+        collider.enabled = true;
+    }
+
+    public static IEnumerator CoDisableCollider2DAfterSeconds(Collider2D collider, float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+
+        collider.enabled = false;
+    }
+
+    public static IEnumerator CoChangePositionAfterSeconds(Transform transform, Vector3 targetPosition, float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+
+        transform.position = targetPosition;
+    }
+
+    public static IEnumerator CoRunMethodWithParamAfterSeconds<T>(Action<T> method, T parameter, float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+
+        method(parameter);
+    }
+
+    public static IEnumerator CoSetBoolAfterSeconds(bool boolean, float seconds, bool value = true)
+    {
+        yield return new WaitForSeconds(seconds);
+
+        boolean = value;
     }
 }

@@ -4,27 +4,35 @@ public class GroundCheck : MonoBehaviour
 {
     [SerializeField] private Character character;
     private bool isGrounded;
+    private int groundLayer;
+    private int trunkLayer;
+
+    private void Awake()
+    {
+        groundLayer = LayerMask.NameToLayer("Ground");
+        trunkLayer = LayerMask.NameToLayer("Trunk");
+    }
 
     private void OnTriggerEnter2D(Collider2D collider)
     {
-        if (collider.CompareTag("Ground"))
+        var obj = collider.gameObject;
+
+        if (obj.layer == groundLayer || obj.layer == trunkLayer)
         {
             isGrounded = true;
             character.isCharacterGrounded = isGrounded;
         }
-
-        print("is grounded:" + isGrounded.ToString());
     }
 
     private void OnTriggerExit2D(Collider2D collider)
     {
-        if (collider.CompareTag("Ground"))
+        var obj = collider.gameObject;
+
+        if (obj.layer == groundLayer || obj.layer == trunkLayer)
         {
             isGrounded = false;
             character.isCharacterGrounded = isGrounded;
         }
-
-        print("is grounded:" + isGrounded.ToString());
     }
 
     public bool IsGrounded()

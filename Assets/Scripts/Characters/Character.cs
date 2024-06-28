@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class Character : MonoBehaviour
@@ -9,6 +10,7 @@ public class Character : MonoBehaviour
     [HideInInspector] public bool isCharacterGrounded = true;
 
     protected Animator animator;
+    public bool isAnimating = false;
 
     [SerializeField] private GroundCheck groundCheck;
     private bool spriteFacingRight = true;
@@ -27,6 +29,19 @@ public class Character : MonoBehaviour
         {
             CheckIfGrounded();
         }
+    }
+    public IEnumerator CoFreezeCharacterIfGrounded(Rigidbody2D rb)
+    {
+        var waitTimeInSeconds = new WaitForSeconds(0.05f);
+
+        while (!isCharacterGrounded)
+        {
+            yield return waitTimeInSeconds;
+        }
+
+        print("Done");
+
+        rb.constraints = RigidbodyConstraints2D.FreezeAll;
     }
 
     public void CheckAndFlipCharacter(bool movingRight)
@@ -47,6 +62,11 @@ public class Character : MonoBehaviour
                 spriteFacingRight = false;
             }
         }
+    }
+
+    public void SetIsAnimating(bool value = true)
+    {
+        isAnimating = value;
     }
 
     private void CheckIfGrounded()

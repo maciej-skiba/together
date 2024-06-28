@@ -10,6 +10,8 @@ public class InputManager : MonoBehaviour
 
     private GameObject currentGameObject;
     private Rigidbody2D currentRigidbody;
+    private Rigidbody2D elephantRigidbody;
+    private Rigidbody2D mouseRigidbody;
     private float currentJumpHeight;
     private float currentMovementSpeed;
     private float jumpFactor = 6f;
@@ -27,7 +29,8 @@ public class InputManager : MonoBehaviour
         currentJumpVector = new Vector2(0, currentJumpHeight * jumpFactor);
 
         mouse.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
-
+        mouseRigidbody = mouse.GetComponent<Rigidbody2D>();
+        elephantRigidbody = elephant.GetComponent<Rigidbody2D>();
     }
 
     private void Update()
@@ -83,17 +86,15 @@ public class InputManager : MonoBehaviour
         }
     }
 
-    private GameObject ReturnCurrentCharacterGameObject()
-    {
-        return Character.currentCharacter == HelperStructures.Characters.Elephant ? elephant.gameObject : mouse.gameObject;
-    }
-
     private void SwapCharacters()
     {
         currentRigidbody.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
 
         if (Character.currentCharacter == HelperStructures.Characters.Elephant)
         {
+            StartCoroutine(mouse.CoFreezeCharacterIfGrounded(elephantRigidbody));
+            elephant.CheckAndFreeMouseFromPlatform();
+
             Character.currentCharacter = HelperStructures.Characters.Mouse;
             currentGameObject = mouse.gameObject;
             currentMovementSpeed = mouse.movementSpeed;
@@ -102,6 +103,8 @@ public class InputManager : MonoBehaviour
         }
         else
         {
+            elephant.CheckAndStickMouseToPlatform(mouse);
+
             Character.currentCharacter = HelperStructures.Characters.Elephant;
             currentGameObject = elephant.gameObject;
             currentMovementSpeed = elephant.movementSpeed;
@@ -166,11 +169,35 @@ public class InputManager : MonoBehaviour
     {
         if (Character.currentCharacter == HelperStructures.Characters.Elephant)
         {
-            elephant.DoPlatform();
+            if (elephant.isAnimating) return;
+
+            elephant.SetIsAnimating(true);
+
+            if (elephant.isHoldingPlatform)
+            {
+                elephant.isHoldingPlatform = false;
+                elephant.AnimatePlatformToIdle();
+                elephant.CheckAndFreeMouseFromPlatform();
+            }
+            else if (elephant.isHoldingCurve)
+            {
+                elephant.isHoldingCurve = false;
+                elephant.AnimateCurveToPlatform();
+                elephant.isHoldingPlatform = true;
+            }
+            else
+            {
+                elephant.isHoldingPlatform = true;
+                elephant.AnimateIdleToPlatform();
+            }
         }
         else
         {
-            mouse.UnknownAction();
+            if (mouse.isAnimating) return;
+
+            mouse.SetIsAnimating(true);
+
+            mouse.UnknownActionOne();
         }
     }
 
@@ -178,11 +205,35 @@ public class InputManager : MonoBehaviour
     {
         if (Character.currentCharacter == HelperStructures.Characters.Elephant)
         {
-            elephant.DoCurve();
+            if (elephant.isAnimating) return;
+
+            elephant.SetIsAnimating(true);
+
+            if (elephant.isHoldingCurve)
+            {
+                elephant.isHoldingCurve = false;
+                elephant.AnimateCurveToIdle();
+            }
+            else if (elephant.isHoldingPlatform)
+            {
+                elephant.isHoldingPlatform = false;
+                elephant.AnimatePlatformToCurve();
+                elephant.LaunchPlatform(mouse);
+                elephant.isHoldingCurve = true;
+            }
+            else
+            {
+                elephant.isHoldingCurve= true;
+                elephant.AnimateIdletoCurve();
+            }
         }
         else
         {
-            mouse.UnknownAction();
+            if (mouse.isAnimating) return;
+
+            mouse.SetIsAnimating(true);
+
+            mouse.UnknownActionTwo();
         }
     }
 }
