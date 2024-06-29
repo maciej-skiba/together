@@ -3,23 +3,23 @@ using UnityEngine;
 
 public class Character : MonoBehaviour
 {
-    public static HelperStructures.Characters currentCharacter;
+    public static Helpers.Characters currentCharacter;
 
     [HideInInspector] public float jumpHeight;
     [HideInInspector] public float movementSpeed;
     [HideInInspector] public bool isCharacterGrounded = true;
+    [HideInInspector] public bool isAnimating = false;
 
+    [SerializeField] protected GroundCheck groundCheck;
     protected Animator animator;
-    public bool isAnimating = false;
 
-    [SerializeField] private GroundCheck groundCheck;
     private bool spriteFacingRight = true;
     private Quaternion facingRightRotation = new Quaternion(0, 0, 0, 0);
     private Quaternion facingLeftRotation = new Quaternion(0, 180, 0, 0);
 
     protected virtual void Awake()
     {
-        currentCharacter = HelperStructures.Characters.Elephant;
+        currentCharacter = Helpers.Characters.Elephant;
         animator = GetComponent<Animator>();
     }
 
@@ -38,8 +38,6 @@ public class Character : MonoBehaviour
         {
             yield return waitTimeInSeconds;
         }
-
-        print("Done");
 
         rb.constraints = RigidbodyConstraints2D.FreezeAll;
     }

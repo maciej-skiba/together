@@ -1,5 +1,9 @@
-public static class HelperStructures
+public static class Helpers
 {
+    public static string TrunkLayerName = "Trunk";
+    public static string GroundLayerName = "Ground";
+    public static string ElephantLayerName = "Elephant";
+
     public enum Characters
     {
         Elephant,

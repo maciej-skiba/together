@@ -1,6 +1,6 @@
 using UnityEngine;
-using Cinemachine.Utility;
 using Cinemachine;
+using System.Collections;
 
 public class InputManager : MonoBehaviour
 {
@@ -11,13 +11,14 @@ public class InputManager : MonoBehaviour
     private GameObject currentGameObject;
     private Rigidbody2D currentRigidbody;
     private Rigidbody2D elephantRigidbody;
-    private Rigidbody2D mouseRigidbody;
     private float currentJumpHeight;
     private float currentMovementSpeed;
-    private float jumpFactor = 6f;
-    private float movementSpeedFactor = 0.03f;
+    private float jumpFactor = 9f;
+    private float movementSpeedFactor = 0.02f;
     private Vector2 currentJumpVector;
     private Vector3 currentMovementSpeedVector;
+    private bool firstTrampolineJumpDone = false;
+    private bool trampolineJumpAvailable = true;
 
     private void Start()
     {
@@ -29,7 +30,6 @@ public class InputManager : MonoBehaviour
         currentJumpVector = new Vector2(0, currentJumpHeight * jumpFactor);
 
         mouse.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
-        mouseRigidbody = mouse.GetComponent<Rigidbody2D>();
         elephantRigidbody = elephant.GetComponent<Rigidbody2D>();
     }
 
@@ -51,19 +51,32 @@ public class InputManager : MonoBehaviour
 
         // Jumping / Moving
 
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+        if (!(mouse.isOnMount && Character.currentCharacter == Helpers.Characters.Mouse))
         {
-            Jump();
-        }
+            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                Jump();
+            }
 
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-        {
-            MoveLeft();
-        }
+            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+            {
+                TrampolineJump();
+            }
 
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-        {
-            MoveRight();
+            if (firstTrampolineJumpDone)
+            {
+                StartCoroutine(mouse.CoIsMouseJumpingOnTrampoline());
+            }
+
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+            {
+                MoveLeft();
+            }
+
+            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+            {
+                MoveRight();
+            }
         }
 
         // Swap characters
@@ -90,12 +103,12 @@ public class InputManager : MonoBehaviour
     {
         currentRigidbody.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
 
-        if (Character.currentCharacter == HelperStructures.Characters.Elephant)
+        if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
             StartCoroutine(mouse.CoFreezeCharacterIfGrounded(elephantRigidbody));
             elephant.CheckAndFreeMouseFromPlatform();
 
-            Character.currentCharacter = HelperStructures.Characters.Mouse;
+            Character.currentCharacter = Helpers.Characters.Mouse;
             currentGameObject = mouse.gameObject;
             currentMovementSpeed = mouse.movementSpeed;
             currentRigidbody = mouse.GetComponent<Rigidbody2D>();
@@ -105,7 +118,7 @@ public class InputManager : MonoBehaviour
         {
             elephant.CheckAndStickMouseToPlatform(mouse);
 
-            Character.currentCharacter = HelperStructures.Characters.Elephant;
+            Character.currentCharacter = Helpers.Characters.Elephant;
             currentGameObject = elephant.gameObject;
             currentMovementSpeed = elephant.movementSpeed;
             currentRigidbody = elephant.GetComponent<Rigidbody2D>();
@@ -123,7 +136,7 @@ public class InputManager : MonoBehaviour
     {
         currentGameObject.transform.position -= currentMovementSpeedVector;
 
-        if (Character.currentCharacter == HelperStructures.Characters.Elephant)
+        if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
             elephant.CheckAndFlipCharacter(movingRight: false);
         }
@@ -137,7 +150,7 @@ public class InputManager : MonoBehaviour
     {
         currentGameObject.transform.position += currentMovementSpeedVector;
 
-        if (Character.currentCharacter == HelperStructures.Characters.Elephant)
+        if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
             elephant.CheckAndFlipCharacter(movingRight: true);
         }
@@ -147,9 +160,9 @@ public class InputManager : MonoBehaviour
         }
     }
 
-    private void Jump()
+    private void Jump(float jumpBoost = 1)
     {
-        if (Character.currentCharacter == HelperStructures.Characters.Elephant)
+        if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
             if (!elephant.isCharacterGrounded) return;
 
@@ -162,12 +175,37 @@ public class InputManager : MonoBehaviour
             mouse.isCharacterGrounded = false;
         }
 
-        currentRigidbody.AddForce(currentJumpVector, ForceMode2D.Impulse);
+        currentRigidbody.AddForce(currentJumpVector * jumpBoost, ForceMode2D.Impulse);
     }
 
+    private void TrampolineJump()
+    {
+        if (trampolineJumpAvailable)
+        {
+            if (Character.currentCharacter == Helpers.Characters.Mouse
+                && HelperFunctions.IsLayerInRange(Vector2.down, "Trunk", 1.0f, mouse.gameObject))
+            {
+                trampolineJumpAvailable = false;
+
+                if (!firstTrampolineJumpDone)
+                {
+                    Jump();
+                    firstTrampolineJumpDone = true;
+                }
+                else
+                {
+                    Jump(jumpBoost: 1.2f);
+                }
+            }
+            else
+            {
+                trampolineJumpAvailable = true;
+            }
+        }
+    }
     private void SpecialActionOne()
     {
-        if (Character.currentCharacter == HelperStructures.Characters.Elephant)
+        if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
             if (elephant.isAnimating) return;
 
@@ -195,15 +233,21 @@ public class InputManager : MonoBehaviour
         {
             if (mouse.isAnimating) return;
 
-            mouse.SetIsAnimating(true);
-
-            mouse.UnknownActionOne();
+            if (mouse.isOnMount)
+            {
+                mouse.UnMountTheElephant();
+            }
+            else
+            {
+                mouse.SetIsAnimating(true);
+                mouse.MountTheElephant();
+            }
         }
     }
 
     private void SpecialActionTwo()
     {
-        if (Character.currentCharacter == HelperStructures.Characters.Elephant)
+        if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
             if (elephant.isAnimating) return;
 
@@ -229,11 +273,14 @@ public class InputManager : MonoBehaviour
         }
         else
         {
-            if (mouse.isAnimating) return;
-
-            mouse.SetIsAnimating(true);
-
-            mouse.UnknownActionTwo();
+            if (mouse.isTimeSlowed)
+            {
+                mouse.BackToDefaultTime();
+            }
+            else
+            {
+                mouse.SlowTime();
+            }
         }
     }
 }

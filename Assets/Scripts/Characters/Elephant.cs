@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class Elephant : Character
@@ -39,7 +38,7 @@ public class Elephant : Character
     {
         base.Awake();
 
-        this.jumpHeight = 1;
+        this.jumpHeight = 1f;
         this.movementSpeed = 1.5f;
         idleToPlatformAnimLength = platformAnimClip.length;
         idleToCurveAnimLength = curveAnimClip.length;
@@ -66,16 +65,18 @@ public class Elephant : Character
     }
     public void AnimatePlatformToIdle()
     {
+
         StartCoroutine(HelperFunctions.CoRunMethodWithParamAfterSeconds(SetIsAnimating, false, platformToIdleAnimLength));
 
+        idleColliderObj.enabled = true;
         platformColliderObj.enabled = false;
 
         StartCoroutine(HelperFunctions.CoEnableCollider2DAfterSeconds(idleColliderObj, platformToIdleAnimLength));
 
         animator.SetBool("ElephantDoingPlatform", false);
 
-        StartCoroutine(HelperFunctions.CoDisableCollider2DAfterSeconds(eleHoldingPlatformColliderObj, platformToIdleAnimLength));
-    }
+        eleHoldingPlatformColliderObj.enabled = false;
+    }   
 
     public void AnimateIdletoCurve()
     {
@@ -93,11 +94,11 @@ public class Elephant : Character
     {
         StartCoroutine(HelperFunctions.CoRunMethodWithParamAfterSeconds(SetIsAnimating, false, curveToIdleAnimLength));
 
-        StartCoroutine(HelperFunctions.CoEnableCollider2DAfterSeconds(idleColliderObj, curveToIdleAnimLength));
+        idleColliderObj.enabled = true;
 
         animator.SetBool("ElephantDoingCurve", false);
 
-        StartCoroutine(HelperFunctions.CoDisableCollider2DAfterSeconds(curveColliderObj, curveToIdleAnimLength));
+        curveColliderObj.enabled = false;
     }
 
     public void AnimateCurveToPlatform()
@@ -117,7 +118,7 @@ public class Elephant : Character
     {
         StartCoroutine(HelperFunctions.CoRunMethodWithParamAfterSeconds(SetIsAnimating, false, platformToCurveAnimLength));
 
-        platformColliderObj.enabled = false;
+        //platformColliderObj.enabled = false;
 
         animator.SetBool("ElephantDoingCurve", true);
 
@@ -131,8 +132,9 @@ public class Elephant : Character
     public void LaunchPlatform(Mouse mouse)
     {
         platformPositionBeforeLaunch = platformColliderObj.transform.position;
+        float rangeToLaunchMouse = 2f;
 
-        if (IsMouseIsOnPlatform(mouse) && mouse != null)
+        if (HelperFunctions.IsLayerInRange(Vector2.down, Helpers.TrunkLayerName, rangeToLaunchMouse, mouse.gameObject))
         {
             CheckAndFreeMouseFromPlatform();
             StartCoroutine(HelperFunctions.CoDisableCollider2DAfterSeconds(platformColliderObj, elevatorLaunchAnimClipLength));
@@ -140,11 +142,17 @@ public class Elephant : Character
             platformLaunchAnimator.SetTrigger("LaunchPlatform");
             mouseRigidbody.AddForce(platformLaunchVerticalBoost, ForceMode2D.Impulse);
         }
+        else
+        {
+            platformColliderObj.enabled = false;
+        }
     }
 
     public void CheckAndStickMouseToPlatform(Mouse mouse)
     {
-        if (IsMouseIsOnPlatform(mouse))
+        float distanceRequiredToStick = 0.1f;
+
+        if (HelperFunctions.IsLayerInRange(Vector2.down, Helpers.TrunkLayerName, distanceRequiredToStick, mouse.gameObject))
         {
             mouseParentBeforeStick = mouse.transform.parent;
             mouseTransform.transform.SetParent(transform, worldPositionStays: true);
@@ -159,17 +167,5 @@ public class Elephant : Character
             mouseTransform.transform.SetParent(mouseParentBeforeStick);
             isMouseSticked = false;
         }
-    }
-
-    private bool IsMouseIsOnPlatform(Mouse mouse)
-    {
-        var mouseCollider = mouse.GetComponent<BoxCollider2D>();
-
-        if (mouseCollider.IsTouching(platformColliderObj))
-        {
-            return true;
-        }
-
-        return false;
     }
 }

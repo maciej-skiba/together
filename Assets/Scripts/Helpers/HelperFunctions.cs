@@ -124,10 +124,27 @@ public static class HelperFunctions
         method(parameter);
     }
 
-    public static IEnumerator CoSetBoolAfterSeconds(bool boolean, float seconds, bool value = true)
+    public static bool IsLayerInRange(Vector2 direction, string targetLayerName, float distance, GameObject sourceObject)
     {
-        yield return new WaitForSeconds(seconds);
+        LayerMask layerMask = 1 << LayerMask.NameToLayer(targetLayerName);
+        RaycastHit2D hit = Physics2D.Raycast(sourceObject.transform.position, direction, distance, layerMask);
 
-        boolean = value;
+        Debug.DrawRay(sourceObject.transform.position, direction * hit.distance, Color.red);        
+
+        if (hit.collider != null)
+        {
+            if (hit.collider.gameObject.layer == LayerMask.NameToLayer(targetLayerName))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static bool AnimatorIsPlaying(Animator animator)
+    {
+        return animator.GetCurrentAnimatorStateInfo(0).length >
+               animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
     }
 }

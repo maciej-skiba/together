@@ -42,6 +42,6 @@ public class Pause : MonoBehaviour
     public void BackToMenu()
     {
         Time.timeScale = 1;
-        SceneManager.LoadScene((int)HelperStructures.Scenes.Menu);
+        SceneManager.LoadScene((int)Helpers.Scenes.Menu);
     }
 }
