@@ -1,19 +1,11 @@
 using UnityEngine;
 
-public class Mechanism : MonoBehaviour
+abstract public class Mechanism : MonoBehaviour
 {
-    [SerializeField] private Animator animator;
+    abstract public bool IsAnimating { protected set; get; }
+    abstract public bool IsOpening { protected set; get; } // TO CHANGE: not generic, but gate-specified
 
-    public virtual void On()
-    {
-        if (HelperFunctions.AnimatorIsPlaying(animator)) return;
-        animator.SetTrigger("On");
-        
-    }
+    abstract public void On();
 
-    public virtual void Off()
-    {
-        if (HelperFunctions.AnimatorIsPlaying(animator)) return;
-        animator.SetTrigger("Off");
-    }
+    abstract public void Off();
 }

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class GroundCheck : MonoBehaviour
@@ -8,7 +9,7 @@ public class GroundCheck : MonoBehaviour
     private bool isGrounded;
     private int groundLayer;
     private int trunkLayer;
-    private int elephantLayer;
+    private int elephantTopLayer;
     private int groundingLayersCombined;
     private Rigidbody2D characterRigidbody;
 
@@ -16,8 +17,11 @@ public class GroundCheck : MonoBehaviour
     {
         groundLayer = LayerMask.NameToLayer(Helpers.GroundLayerName);
         trunkLayer = LayerMask.NameToLayer(Helpers.TrunkLayerName);
-        elephantLayer = LayerMask.NameToLayer(Helpers.ElephantLayerName);
-        groundingLayersCombined = groundLayer + trunkLayer + elephantLayer;
+        elephantTopLayer = LayerMask.NameToLayer(Helpers.ElephantTopLayerName);
+        groundingLayersCombined = 
+              (1 << groundLayer)
+            + (1 << trunkLayer)
+            + (1 << elephantTopLayer);
 
         characterRigidbody = character.GetComponent<Rigidbody2D>();
         boxCollider = GetComponent<BoxCollider2D>();
@@ -25,11 +29,17 @@ public class GroundCheck : MonoBehaviour
 
     private void OnTriggerStay2D(Collider2D collider)
     {
-        if (characterRigidbody.velocity.y > 0) return;
-
         var obj = collider.gameObject;
 
-        if ((obj.layer & groundingLayersCombined) > 0)
+        if (obj.layer == elephantTopLayer)
+        {
+            isGrounded = true;
+            character.isCharacterGrounded = isGrounded;
+        }
+
+        if (Math.Abs(characterRigidbody.velocity.y) > 0.05f) return;
+
+        if (((1 << obj.layer) & groundingLayersCombined) > 0)
         {
             isGrounded = true;
             character.isCharacterGrounded = isGrounded;
@@ -40,7 +50,7 @@ public class GroundCheck : MonoBehaviour
     {
         var obj = collider.gameObject;
 
-        if ((obj.layer & groundingLayersCombined) > 0)
+        if (((1 << obj.layer) & groundingLayersCombined) > 0)
         {
             isGrounded = false;
             character.isCharacterGrounded = isGrounded;

@@ -14,10 +14,9 @@ public class InputManager : MonoBehaviour
     private float currentJumpHeight;
     private float currentMovementSpeed;
     private float jumpFactor = 9f;
-    private float movementSpeedFactor = 0.02f;
+    private float movementSpeedFactor = 5f;
     private Vector2 currentJumpVector;
     private Vector3 currentMovementSpeedVector;
-    private bool firstTrampolineJumpDone = false;
     private bool trampolineJumpAvailable = true;
 
     private void Start()
@@ -35,6 +34,39 @@ public class InputManager : MonoBehaviour
 
     private void Update()
     {
+
+        /// commented - got back to trampoline through bouncy material
+
+        //if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+        //{
+        //    StartCoroutine(CoTrampolineJump());
+        //}
+
+        //if (mouse.firstTrampolineJumpDone)
+        //{
+        //    StartCoroutine(mouse.CoWaitUntilMouseStopsJumpingOnTrampoline());
+        //}
+
+        // Jumping / Moving
+
+        if (!(mouse.isOnMount && Character.currentCharacter == Helpers.Characters.Mouse))
+        {
+            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                Jump();
+            }
+
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+            {
+                MoveLeft();
+            }
+
+            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+            {
+                MoveRight();
+            }
+        }
+
         // Pause
 
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -46,36 +78,6 @@ public class InputManager : MonoBehaviour
             else
             {
                 Pause.Instance.PauseOn();
-            }
-        }
-
-        // Jumping / Moving
-
-        if (!(mouse.isOnMount && Character.currentCharacter == Helpers.Characters.Mouse))
-        {
-            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
-            {
-                Jump();
-            }
-
-            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
-            {
-                TrampolineJump();
-            }
-
-            if (firstTrampolineJumpDone)
-            {
-                StartCoroutine(mouse.CoIsMouseJumpingOnTrampoline());
-            }
-
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-            {
-                MoveLeft();
-            }
-
-            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-            {
-                MoveRight();
             }
         }
 
@@ -105,7 +107,6 @@ public class InputManager : MonoBehaviour
 
         if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
-            StartCoroutine(mouse.CoFreezeCharacterIfGrounded(elephantRigidbody));
             elephant.CheckAndFreeMouseFromPlatform();
 
             Character.currentCharacter = Helpers.Characters.Mouse;
@@ -116,7 +117,8 @@ public class InputManager : MonoBehaviour
         }
         else
         {
-            elephant.CheckAndStickMouseToPlatform(mouse);
+            //elephant.CheckAndStickMouseToPlatform(mouse);
+            if (mouse.isTimeSlowed) mouse.BackToDefaultTime();
 
             Character.currentCharacter = Helpers.Characters.Elephant;
             currentGameObject = elephant.gameObject;
@@ -125,20 +127,34 @@ public class InputManager : MonoBehaviour
             currentJumpHeight = elephant.jumpHeight;
         }
 
-        currentJumpVector = new Vector2(0, currentJumpHeight * jumpFactor);
-        currentMovementSpeedVector = new Vector3(currentMovementSpeed * movementSpeedFactor, 0, 0);
+        ReloadMovementProperties();
         virtualCamera.Follow = currentGameObject.transform;
 
         currentRigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
 
+    private void ReloadMovementProperties()
+    {
+        if (Character.currentCharacter == Helpers.Characters.Elephant)
+        {
+            currentMovementSpeed = elephant.movementSpeed;
+        }
+        else
+        {
+            currentMovementSpeed = mouse.movementSpeed;
+        }
+
+        currentJumpVector = new Vector2(0, currentJumpHeight * jumpFactor);
+        currentMovementSpeedVector = new Vector3(currentMovementSpeed * movementSpeedFactor, 0, 0);
+    }
+
     private void MoveLeft()
     {
-        currentGameObject.transform.position -= currentMovementSpeedVector;
+        currentGameObject.transform.position -= currentMovementSpeedVector * Time.deltaTime;
 
         if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
-            elephant.CheckAndFlipCharacter(movingRight: false);
+            elephant.CheckAndFlipCharacter(movingRight: false, repositionVector: elephant.repositionAfterFlipVector);
         }
         else
         {
@@ -148,11 +164,11 @@ public class InputManager : MonoBehaviour
 
     private void MoveRight()
     {
-        currentGameObject.transform.position += currentMovementSpeedVector;
+        currentGameObject.transform.position += currentMovementSpeedVector * Time.deltaTime;
 
         if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
-            elephant.CheckAndFlipCharacter(movingRight: true);
+            elephant.CheckAndFlipCharacter(movingRight: true, repositionVector: elephant.repositionAfterFlipVector);
         }
         else
         {
@@ -178,29 +194,30 @@ public class InputManager : MonoBehaviour
         currentRigidbody.AddForce(currentJumpVector * jumpBoost, ForceMode2D.Impulse);
     }
 
-    private void TrampolineJump()
+    private IEnumerator CoTrampolineJump()
     {
-        if (trampolineJumpAvailable)
+        if (Character.currentCharacter == Helpers.Characters.Mouse
+            && HelperFunctions.IsLayerInRange(Vector2.down, "Trunk", 1.0f, mouse.gameObject)
+            && mouse.isCharacterGrounded
+            && trampolineJumpAvailable)
         {
-            if (Character.currentCharacter == Helpers.Characters.Mouse
-                && HelperFunctions.IsLayerInRange(Vector2.down, "Trunk", 1.0f, mouse.gameObject))
-            {
-                trampolineJumpAvailable = false;
+            trampolineJumpAvailable = false;
 
-                if (!firstTrampolineJumpDone)
-                {
-                    Jump();
-                    firstTrampolineJumpDone = true;
-                }
-                else
-                {
-                    Jump(jumpBoost: 1.2f);
-                }
+            if (!mouse.firstTrampolineJumpDone)
+            {
+                Jump();
+                mouse.firstTrampolineJumpDone = true;
             }
             else
             {
-                trampolineJumpAvailable = true;
+                Jump(jumpBoost: 1.1f);
             }
+
+            yield return new WaitForSeconds(0.3f);
+        }
+        else
+        {
+            trampolineJumpAvailable = true;
         }
     }
     private void SpecialActionOne()
@@ -217,9 +234,9 @@ public class InputManager : MonoBehaviour
                 elephant.AnimatePlatformToIdle();
                 elephant.CheckAndFreeMouseFromPlatform();
             }
-            else if (elephant.isHoldingCurve)
+            else if (elephant.isHoldingBall)
             {
-                elephant.isHoldingCurve = false;
+                elephant.isHoldingBall = false;
                 elephant.AnimateCurveToPlatform();
                 elephant.isHoldingPlatform = true;
             }
@@ -251,24 +268,13 @@ public class InputManager : MonoBehaviour
         {
             if (elephant.isAnimating) return;
 
-            elephant.SetIsAnimating(true);
-
-            if (elephant.isHoldingCurve)
+            if (elephant.isHoldingBall)
             {
-                elephant.isHoldingCurve = false;
-                elephant.AnimateCurveToIdle();
-            }
-            else if (elephant.isHoldingPlatform)
-            {
-                elephant.isHoldingPlatform = false;
-                elephant.AnimatePlatformToCurve();
-                elephant.LaunchPlatform(mouse);
-                elephant.isHoldingCurve = true;
+                elephant.ReleaseTheBall();
             }
             else
             {
-                elephant.isHoldingCurve= true;
-                elephant.AnimateIdletoCurve();
+                elephant.GrabTheBall();
             }
         }
         else
@@ -276,10 +282,12 @@ public class InputManager : MonoBehaviour
             if (mouse.isTimeSlowed)
             {
                 mouse.BackToDefaultTime();
+                ReloadMovementProperties();
             }
             else
             {
                 mouse.SlowTime();
+                ReloadMovementProperties();
             }
         }
     }

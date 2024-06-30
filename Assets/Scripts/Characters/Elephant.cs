@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Elephant : Character
@@ -5,7 +6,8 @@ public class Elephant : Character
     [HideInInspector] public bool elephantDoingPlatform;
     [HideInInspector] public bool elephantDoingCurve;
     [HideInInspector] public bool isHoldingPlatform = false;
-    [HideInInspector] public bool isHoldingCurve = false;
+    [HideInInspector] public bool isHoldingBall = false;
+    [HideInInspector] public Vector3 repositionAfterFlipVector;
 
     [SerializeField] private PolygonCollider2D idleColliderObj;
     [SerializeField] private PolygonCollider2D eleHoldingPlatformColliderObj;
@@ -20,6 +22,11 @@ public class Elephant : Character
     [SerializeField] private AnimationClip launchPlatformAnimClip;
     [SerializeField] private Animator platformLaunchAnimator;
     [SerializeField] private Mouse mouse;
+    [SerializeField] private Transform ballHoldingPoint;
+    [SerializeField] private GameObject ballsContainer;
+    [SerializeField] private Transform elephantTopContainer;
+    private List<BoxCollider2D> elephantTopBoxColliders;
+    private List<GameObject> balls;
     private float idleToPlatformAnimLength;
     private float idleToCurveAnimLength;
     private float curveToPlatformAnimLength;
@@ -27,19 +34,22 @@ public class Elephant : Character
     private float platformToCurveAnimLength;
     private float platformToIdleAnimLength;
     private float elevatorLaunchAnimClipLength;
-    private Vector3 platformPositionBeforeLaunch;
     private readonly Vector3 platformLaunchVerticalBoost = new Vector3(0, 15, 0);
+    private Vector3 platformPositionBeforeLaunch;
     private bool isMouseSticked = false;
+    private bool ElephantTopCollidable;
     private Transform mouseParentBeforeStick;
     private Transform mouseTransform;
+    private Transform attachedBall;
     private Rigidbody2D mouseRigidbody;
+    private Rigidbody2D attachedBallRigidbody;
 
     protected override void Awake()
     {
         base.Awake();
 
         this.jumpHeight = 1f;
-        this.movementSpeed = 1.5f;
+        this.movementSpeed = 1.4f;
         idleToPlatformAnimLength = platformAnimClip.length;
         idleToCurveAnimLength = curveAnimClip.length;
         platformToCurveAnimLength = platformToCurveAnimClip.length;
@@ -49,6 +59,34 @@ public class Elephant : Character
         elevatorLaunchAnimClipLength = launchPlatformAnimClip.length;
         mouseTransform = mouse.GetComponent<Transform>();
         mouseRigidbody = mouse.GetComponent<Rigidbody2D>();
+        repositionAfterFlipVector = new Vector3(2.0f, 0, 0);
+        balls = new List<GameObject>();
+        elephantTopBoxColliders = new List<BoxCollider2D>();
+
+        for (int i = 0; i < ballsContainer.transform.childCount; i++)
+        {
+            balls.Add(ballsContainer.transform.GetChild(i).gameObject);
+        }
+
+        for (int i = 0; i < elephantTopContainer.childCount; i++)
+        {
+            Transform child = elephantTopContainer.transform.GetChild(i);
+            elephantTopBoxColliders.Add(child.GetComponent<BoxCollider2D>());
+        }
+    }
+
+    private void Update()
+    {
+        if (Character.currentCharacter != Helpers.Characters.Mouse) return;
+
+        if (mouseRigidbody.velocity.y <= 0.1f && !ElephantTopCollidable)
+        {
+            MakeElephantTopCollidable();
+        }
+        else if (mouseRigidbody.velocity.y > 0.1f && ElephantTopCollidable)
+        {
+            MakeElephantTopNotCollidable();
+        }
     }
 
     public void AnimateIdleToPlatform()
@@ -118,8 +156,6 @@ public class Elephant : Character
     {
         StartCoroutine(HelperFunctions.CoRunMethodWithParamAfterSeconds(SetIsAnimating, false, platformToCurveAnimLength));
 
-        //platformColliderObj.enabled = false;
-
         animator.SetBool("ElephantDoingCurve", true);
 
         StartCoroutine(HelperFunctions.CoEnableCollider2DAfterSeconds(curveColliderObj, platformToCurveAnimLength));
@@ -129,22 +165,46 @@ public class Elephant : Character
 
     }
 
-    public void LaunchPlatform(Mouse mouse)
-    {
-        platformPositionBeforeLaunch = platformColliderObj.transform.position;
-        float rangeToLaunchMouse = 2f;
+    //public void LaunchPlatform(Mouse mouse)
+    //{
+    //    platformPositionBeforeLaunch = platformColliderObj.transform.position;
+    //    float rangeToLaunchMouse = 2f;
 
-        if (HelperFunctions.IsLayerInRange(Vector2.down, Helpers.TrunkLayerName, rangeToLaunchMouse, mouse.gameObject))
+    //    if (HelperFunctions.IsLayerInRange(Vector2.down, Helpers.TrunkLayerName, rangeToLaunchMouse, mouse.gameObject))
+    //    {
+    //        CheckAndFreeMouseFromPlatform();
+    //        StartCoroutine(HelperFunctions.CoDisableCollider2DAfterSeconds(platformColliderObj, elevatorLaunchAnimClipLength));
+    //        StartCoroutine(HelperFunctions.CoChangePositionAfterSeconds(platformColliderObj.transform, platformPositionBeforeLaunch, elevatorLaunchAnimClipLength));
+    //        platformLaunchAnimator.SetTrigger("LaunchPlatform");
+    //        mouseRigidbody.AddForce(platformLaunchVerticalBoost, ForceMode2D.Impulse);
+    //    }
+    //    else
+    //    {
+    //        platformColliderObj.enabled = false;
+    //    }
+    //}
+    public void GrabTheBall()
+    {
+        if (balls.Count == 0) return;
+
+        if (!isHoldingBall)
         {
-            CheckAndFreeMouseFromPlatform();
-            StartCoroutine(HelperFunctions.CoDisableCollider2DAfterSeconds(platformColliderObj, elevatorLaunchAnimClipLength));
-            StartCoroutine(HelperFunctions.CoChangePositionAfterSeconds(platformColliderObj.transform, platformPositionBeforeLaunch, elevatorLaunchAnimClipLength));
-            platformLaunchAnimator.SetTrigger("LaunchPlatform");
-            mouseRigidbody.AddForce(platformLaunchVerticalBoost, ForceMode2D.Impulse);
+            var nearestBall = GetNearestBall();
+
+            if (IsBallInRange(nearestBall.transform))
+            {
+                AttachTheBallToElephant(nearestBall.transform);
+            }
         }
-        else
+    }
+
+    public void ReleaseTheBall()
+    {
+        if (balls.Count == 0) return;
+
+        if (isHoldingBall)
         {
-            platformColliderObj.enabled = false;
+            DetachTheBallFromElephant(attachedBall);
         }
     }
 
@@ -167,5 +227,77 @@ public class Elephant : Character
             mouseTransform.transform.SetParent(mouseParentBeforeStick);
             isMouseSticked = false;
         }
+    }
+
+    private void MakeElephantTopCollidable()
+    {
+        foreach(var collider in elephantTopBoxColliders)
+        {
+            collider.enabled = true;
+        }
+
+        ElephantTopCollidable = true;
+    }
+    private void MakeElephantTopNotCollidable()
+    {
+        foreach (var collider in elephantTopBoxColliders)
+        {
+            collider.enabled = false;
+        }
+        
+        ElephantTopCollidable = false;
+    }
+
+
+    private GameObject GetNearestBall()
+    {
+        GameObject nearestBall = balls[0];
+        float distanceToCurrentBall;
+        float smallestDistance = 0;
+        
+        for (int i = 0; i < balls.Count; i++)
+        {
+            if (i == 0)
+            {
+                smallestDistance = Vector2.Distance(balls[i].transform.position, ballHoldingPoint.position);
+                nearestBall = balls[i];
+            }
+            else
+            {
+                distanceToCurrentBall = Vector2.Distance(balls[i].transform.position, ballHoldingPoint.position);
+
+                if (smallestDistance > distanceToCurrentBall)
+                {
+                    smallestDistance = distanceToCurrentBall;
+                    nearestBall = balls[i];
+                }
+            }
+        }
+
+        return nearestBall;
+    }
+
+    private bool IsBallInRange(Transform ball)
+    {
+        return HelperFunctions.IsObjectInRange(ballHoldingPoint.position, ball.position, range: 5.0f);
+    }
+
+    private void AttachTheBallToElephant(Transform ball)
+    {
+        HelperFunctions.ChangePosition(ball, ballHoldingPoint.transform.position);
+        ball.SetParent(transform, worldPositionStays: true);
+        attachedBall = ball;
+        attachedBallRigidbody = attachedBall.GetComponent<Rigidbody2D>();
+        attachedBallRigidbody.isKinematic = true;
+        isHoldingBall = true;
+    }
+
+    private void DetachTheBallFromElephant(Transform ball)
+    {
+        ball.SetParent(ballsContainer.transform, worldPositionStays: true);
+        attachedBallRigidbody.isKinematic = false;
+        attachedBallRigidbody = null;
+        attachedBall = null;
+        isHoldingBall = false;
     }
 }

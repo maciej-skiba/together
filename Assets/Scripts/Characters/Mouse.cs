@@ -7,12 +7,16 @@ public class Mouse : Character
 {
     [HideInInspector] public bool isOnMount;
     [HideInInspector] public bool isTimeSlowed;
-    
+    [HideInInspector] public bool firstTrampolineJumpDone;
+
     [SerializeField] private Transform elephantSeatTransform;
     [SerializeField] private Animator slowTimeAnimator;
     private readonly float mountingTime = 0.6f;
     private readonly float mass = 1.0f;
     private readonly float seatAvaiableRange = 12.0f;
+    private readonly float slowTimeScale = 0.5f;
+    private readonly int defaultTimeScale = 1;
+    private float slowTimeSpeedBonus;
     private Transform mouseParentBeforeMount;
     private Rigidbody2D rb;
     private BoxCollider2D boxCollider;
@@ -23,11 +27,17 @@ public class Mouse : Character
         base.Awake();
 
         this.jumpHeight = 1.7f;
-        this.movementSpeed = 1.5f;
+        this.movementSpeed = 2f;
         mouseParentBeforeMount = transform.parent;
         rb = GetComponent<Rigidbody2D>();
         boxCollider = GetComponent<BoxCollider2D>();
         trunkLayerMask = 1 << LayerMask.NameToLayer(Helpers.TrunkLayerName);
+        slowTimeSpeedBonus = defaultTimeScale / slowTimeScale;
+    }
+
+    private void Update()
+    {
+        print("mouse velocity.y: " + rb.velocity.y.ToString());
     }
 
     public void MountTheElephant()
@@ -62,23 +72,27 @@ public class Mouse : Character
     public void SlowTime()
     {
         isTimeSlowed = true;
-        Time.timeScale = 0.5f;
+        Time.timeScale = slowTimeScale;
         slowTimeAnimator.SetTrigger("SlowTime");
+        this.movementSpeed *= slowTimeSpeedBonus;
     }
 
     public void BackToDefaultTime()
     {
         isTimeSlowed = false;
-        Time.timeScale = 1.0f;
+        Time.timeScale = defaultTimeScale;
         slowTimeAnimator.SetTrigger("BackToDefaultTime");
+        this.movementSpeed /= slowTimeSpeedBonus;
     }
 
-    public IEnumerator CoIsMouseJumpingOnTrampoline()
+    public IEnumerator CoWaitUntilMouseStopsJumpingOnTrampoline()
     {
         while (!IsMouseOnTrampoline())
         {
             yield return null;
         }
+
+        firstTrampolineJumpDone = false;
     }
 
     private bool IsMouseOnTrampoline()

@@ -42,12 +42,13 @@ public class Character : MonoBehaviour
         rb.constraints = RigidbodyConstraints2D.FreezeAll;
     }
 
-    public void CheckAndFlipCharacter(bool movingRight)
+    public void CheckAndFlipCharacter(bool movingRight, Vector3 repositionVector = default(Vector3))
     {
         if (movingRight)
         {
             if (!spriteFacingRight)
             {
+                transform.position += repositionVector;
                 transform.rotation = facingRightRotation;
                 spriteFacingRight = true;
             }
@@ -56,6 +57,7 @@ public class Character : MonoBehaviour
         {
             if (spriteFacingRight)
             {
+                transform.position -= repositionVector;
                 transform.rotation = facingLeftRotation;
                 spriteFacingRight = false;
             }
