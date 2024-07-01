@@ -23,7 +23,7 @@ public class Character : MonoBehaviour
         animator = GetComponent<Animator>();
     }
 
-    private void Update()
+    protected virtual void Update()
     {
         if (!isCharacterGrounded)
         {

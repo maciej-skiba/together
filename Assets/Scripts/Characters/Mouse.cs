@@ -1,7 +1,6 @@
 using System.Collections;
-using System.Runtime.CompilerServices;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Mouse : Character
 {
@@ -10,13 +9,16 @@ public class Mouse : Character
     [HideInInspector] public bool firstTrampolineJumpDone;
 
     [SerializeField] private Transform elephantSeatTransform;
+    [SerializeField] private Image[] slowTimeBarElements;
     [SerializeField] private Animator slowTimeAnimator;
-    private readonly float mountingTime = 0.6f;
+    private readonly float mountingTime = 0.4f;
     private readonly float mass = 1.0f;
     private readonly float seatAvaiableRange = 12.0f;
     private readonly float slowTimeScale = 0.5f;
     private readonly int defaultTimeScale = 1;
-    private float slowTimeSpeedBonus;
+    private readonly float maxSlowTime = 4.0f;
+    private float slowTimeFactor;
+    private float remainingSlowTime;
     private Transform mouseParentBeforeMount;
     private Rigidbody2D rb;
     private BoxCollider2D boxCollider;
@@ -26,18 +28,44 @@ public class Mouse : Character
     {
         base.Awake();
 
+        remainingSlowTime = maxSlowTime;
         this.jumpHeight = 1.7f;
         this.movementSpeed = 2f;
         mouseParentBeforeMount = transform.parent;
         rb = GetComponent<Rigidbody2D>();
         boxCollider = GetComponent<BoxCollider2D>();
         trunkLayerMask = 1 << LayerMask.NameToLayer(Helpers.TrunkLayerName);
-        slowTimeSpeedBonus = defaultTimeScale / slowTimeScale;
+        slowTimeFactor = defaultTimeScale / slowTimeScale;
     }
 
-    private void Update()
+    protected override void Update()
     {
-        print("mouse velocity.y: " + rb.velocity.y.ToString());
+        base.Update();
+
+        if (isTimeSlowed)
+        {
+            remainingSlowTime -= Time.deltaTime * slowTimeFactor;
+
+            if (remainingSlowTime <= 0)
+            {
+                BackToDefaultTime();
+                MakeSlowTimeBarTransparent();
+            }
+        }
+        else if (!isTimeSlowed && remainingSlowTime < maxSlowTime)
+        {
+            remainingSlowTime += Time.deltaTime;
+        }
+        else if (remainingSlowTime > maxSlowTime)
+        {
+            remainingSlowTime = maxSlowTime;
+        }
+        else return;
+
+        foreach (var element in slowTimeBarElements)
+        {
+            element.fillAmount = remainingSlowTime / maxSlowTime;
+        }
     }
 
     public void MountTheElephant()
@@ -71,10 +99,16 @@ public class Mouse : Character
 
     public void SlowTime()
     {
+        foreach (var element in slowTimeBarElements)
+        {
+            StartCoroutine(HelperFunctions.CoChangeImageAlpha(element, 0.3f, alpha: 1.0f)); 
+        }
+
         isTimeSlowed = true;
         Time.timeScale = slowTimeScale;
         slowTimeAnimator.SetTrigger("SlowTime");
-        this.movementSpeed *= slowTimeSpeedBonus;
+        this.movementSpeed *= slowTimeFactor;
+        InputManager.Instance.ReloadMovementProperties();
     }
 
     public void BackToDefaultTime()
@@ -82,7 +116,8 @@ public class Mouse : Character
         isTimeSlowed = false;
         Time.timeScale = defaultTimeScale;
         slowTimeAnimator.SetTrigger("BackToDefaultTime");
-        this.movementSpeed /= slowTimeSpeedBonus;
+        this.movementSpeed /= slowTimeFactor;
+        InputManager.Instance.ReloadMovementProperties();
     }
 
     public IEnumerator CoWaitUntilMouseStopsJumpingOnTrampoline()
@@ -95,6 +130,30 @@ public class Mouse : Character
         firstTrampolineJumpDone = false;
     }
 
+    public void HideSlowTimeBar()
+    {
+        foreach (var element in slowTimeBarElements)
+        {
+            StartCoroutine(HelperFunctions.CoHideImage(img: element, timeInSeconds: 0.3f));
+        }
+    }
+
+    public void MakeSlowTimeBarTransparent()
+    {
+        foreach (var element in slowTimeBarElements)
+        {
+            StartCoroutine(HelperFunctions.CoChangeImageAlpha(img: element, timeInSeconds: 0.3f, alpha: 0.25f));
+        }
+    }
+
+    public void ShowSlowTimeBar()
+    {
+        foreach (var element in slowTimeBarElements)
+        {
+            StartCoroutine(HelperFunctions.CoShowImage(img: element, timeInSeconds: 0.3f));
+        }
+    }
+
     private bool IsMouseOnTrampoline()
     {
         return isCharacterGrounded && groundCheck.boxCollider.IsTouchingLayers(trunkLayerMask);
@@ -104,10 +163,8 @@ public class Mouse : Character
     {
         float timePassed = 0;
         float lerpFactor;
-        float deltaTime = 0.005f;
         Vector2 initialPosition = transform.position;
         Vector2 targetPosition = elephantSeatTransform.position;
-        var waitDeltaTime = new WaitForSeconds(deltaTime);
 
         float arcHeight = 2.0f;
 
@@ -124,8 +181,8 @@ public class Mouse : Character
 
             transform.position = arcPosition;
 
-            yield return waitDeltaTime;
-            timePassed += deltaTime;
+            timePassed += Time.deltaTime;
+            yield return new WaitForSeconds(Time.deltaTime);
         }
 
         transform.position = targetPosition;

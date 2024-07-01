@@ -23,6 +23,7 @@ public class Pause : MonoBehaviour
         }
 
         pauseWindow = this.gameObject;
+        PauseOff();
     }
 
     public void PauseOn()

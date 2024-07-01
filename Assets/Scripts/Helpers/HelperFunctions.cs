@@ -22,6 +22,18 @@ public static class HelperFunctions
         gameObject.transform.position = endPosition;
     }
 
+    public static IEnumerator CoShowImage(Image img, float timeInSeconds)
+    {
+        while (img.color.a < 1.0f)
+        {
+            var imageColor = img.color;
+            imageColor.a += 0.01f;
+            img.color = imageColor;
+
+            yield return new WaitForSeconds(0.02f * timeInSeconds);
+        }
+    }
+
     public static IEnumerator CoHideImage(Image img, float timeInSeconds)
     {
         while (img.color.a > 0.01f)
@@ -31,6 +43,32 @@ public static class HelperFunctions
             img.color = imageColor;
 
             yield return new WaitForSeconds(0.02f * timeInSeconds);
+        }
+    }
+
+    public static IEnumerator CoChangeImageAlpha(Image img, float timeInSeconds, float alpha)
+    {
+        if (img.color.a > alpha)
+        {
+            while (img.color.a > alpha)
+            {
+                var imageColor = img.color;
+                imageColor.a -= 0.01f;
+                img.color = imageColor;
+
+                yield return new WaitForSeconds(0.01f * timeInSeconds);
+            }
+        }
+        else
+        {
+            while (img.color.a < alpha)
+            {
+                var imageColor = img.color;
+                imageColor.a += 0.01f;
+                img.color = imageColor;
+
+                yield return new WaitForSeconds(0.01f * timeInSeconds);
+            }
         }
     }
 

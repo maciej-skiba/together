@@ -16,9 +16,11 @@ public static class Helpers
     public enum Scenes
     {
         Menu = 0,
-        Tutorial = 1,
-        FirstLevel = 2,
-        SecondLevel = 3, 
-        ThirdLevel = 4,
+        Instruction,
+        SelectLevel,
+        FirstLevel,
+        SecondLevel,
+        ThirdLevel,
+        Credits,
     }
 }
