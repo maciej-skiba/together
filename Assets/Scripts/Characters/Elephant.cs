@@ -288,6 +288,7 @@ public class Elephant : Character
         ball.SetParent(transform, worldPositionStays: true);
         attachedBall = ball;
         attachedBallRigidbody = attachedBall.GetComponent<Rigidbody2D>();
+        attachedBallRigidbody.velocity = Vector2.zero;
         attachedBallRigidbody.isKinematic = true;
         isHoldingBall = true;
     }

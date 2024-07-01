@@ -59,8 +59,9 @@ public class Mouse : Character
         else if (remainingSlowTime > maxSlowTime)
         {
             remainingSlowTime = maxSlowTime;
+            
+            if (Character.currentCharacter == Helpers.Characters.Mouse) MakeSlowTimeBarTransparent();
         }
-        else return;
 
         foreach (var element in slowTimeBarElements)
         {

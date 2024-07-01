@@ -198,7 +198,7 @@ public class InputManager : MonoBehaviour
     {
         if (Character.currentCharacter == Helpers.Characters.Elephant)
         {
-            if (elephant.isAnimating) return;
+            if (elephant.isAnimating || elephant.isHoldingBall) return;
 
             elephant.SetIsAnimating(true);
 
