@@ -5,6 +5,9 @@ public class Character : MonoBehaviour
 {
     public static Helpers.Characters currentCharacter;
 
+    public AudioSource actionOneSound;
+    public AudioSource actionTwoSound;
+
     [HideInInspector] public float jumpHeight;
     [HideInInspector] public float movementSpeed;
     [HideInInspector] public bool isCharacterGrounded = true;

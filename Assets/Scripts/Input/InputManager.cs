@@ -18,6 +18,8 @@ public class InputManager : MonoBehaviour
     private float movementSpeedFactor = 5f;
     private Vector2 currentJumpVector;
     private Vector3 currentMovementSpeedVector;
+    private AudioSource elephantJump;
+    private AudioSource mouseJump;
 
     private void Awake()
     {
@@ -39,6 +41,8 @@ public class InputManager : MonoBehaviour
         currentMovementSpeedVector = new Vector3(currentMovementSpeed * movementSpeedFactor, 0, 0);
         currentJumpHeight = elephant.jumpHeight;
         currentJumpVector = new Vector2(0, currentJumpHeight * jumpFactor);
+        elephantJump = elephant.GetComponent<AudioSource>();
+        mouseJump = mouse.GetComponent<AudioSource>();
 
         mouse.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
     }
@@ -183,12 +187,14 @@ public class InputManager : MonoBehaviour
             if (!elephant.isCharacterGrounded) return;
 
             elephant.isCharacterGrounded = false;
+            elephantJump.Play();
         }
         else 
         {
             if (!mouse.isCharacterGrounded) return;
 
             mouse.isCharacterGrounded = false;
+            mouseJump.Play();
         }
 
         currentRigidbody.AddForce(currentJumpVector * jumpBoost, ForceMode2D.Impulse);
@@ -201,6 +207,7 @@ public class InputManager : MonoBehaviour
             if (elephant.isAnimating || elephant.isHoldingBall) return;
 
             elephant.SetIsAnimating(true);
+            elephant.actionOneSound.Play();
 
             if (elephant.isHoldingPlatform)
             {
@@ -245,6 +252,7 @@ public class InputManager : MonoBehaviour
             if (elephant.isHoldingBall)
             {
                 elephant.ReleaseTheBall();
+                elephant.actionTwoSound.Play();
             }
             else
             {
@@ -260,6 +268,7 @@ public class InputManager : MonoBehaviour
             else
             {
                 mouse.SlowTime();
+                mouse.actionTwoSound.Play();
             }
         }
     }

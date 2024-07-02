@@ -194,6 +194,7 @@ public class Elephant : Character
             if (IsBallInRange(nearestBall.transform))
             {
                 AttachTheBallToElephant(nearestBall.transform);
+                actionTwoSound.Play();
             }
         }
     }

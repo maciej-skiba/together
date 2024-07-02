@@ -1,25 +1,27 @@
 using UnityEngine;
 
-public class Music : Audio
+public class Music : MonoBehaviour
 {
-    public static int Volume
+    public static Music Instance { get; private set; }
+    private AudioSource audioSource;
+    private string menuMusicName = "Menu";
+
+    private void Awake()
     {
-        get
+        audioSource = GetComponent<AudioSource>();
+
+        if (Instance == null)
         {
-            return PlayerPrefs.GetInt(musicVolumePrefName, defaultVolumeValue);
+            Instance = this;
+            audioSource.Play();
+            DontDestroyOnLoad(Instance.gameObject);
         }
-        set
+        else if (Instance != null && audioSource.clip.name != Instance.audioSource.clip.name)
         {
-            PlayerPrefs.SetInt(musicVolumePrefName, value);
+            Destroy(Instance.gameObject);
+            Instance = this;
+            audioSource.Play();
+            DontDestroyOnLoad(Instance.gameObject);
         }
-    }
-
-    private static string musicVolumePrefName = "musicVolume";
-
-    protected override void Awake()
-    {
-        base.Awake();
-
-        audioSource.volume = Volume;
     }
 }

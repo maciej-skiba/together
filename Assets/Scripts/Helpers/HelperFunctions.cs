@@ -197,4 +197,15 @@ public static class HelperFunctions
     {
         transform.position = targetPosition;
     }
+
+    public static IEnumerator CoWaitUntilNotPlayingAndDestroy(AudioSource audioSource)
+    {
+        while (audioSource.isPlaying)
+        {
+            yield return null;
+        }
+
+        MonoBehaviour.Destroy(audioSource.gameObject);
+    }
+
 }

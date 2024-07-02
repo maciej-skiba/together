@@ -77,6 +77,7 @@ public class Mouse : Character
             return;
         }
 
+        actionOneSound.Play();
         StartCoroutine(CoMountTheElephant());
         boxCollider.enabled = false;
         isOnMount = true;

@@ -21,6 +21,8 @@ public static class Helpers
         FirstLevel,
         SecondLevel,
         ThirdLevel,
+        End,
         Credits,
+        Credits2
     }
 }
